@@ -7,6 +7,7 @@ class Property(Document):
     title = StringField(required=True, max_length=100)
     type = StringField(required=True, max_length=50) # e.g., 'Villa', 'Apartment', 'Townhouse'
     price = FloatField(required=True)
+    property_type = EnumField('PropertyType', required=True) # 'For Sale' or 'For Rent'
 
     def to_dict(self):
         return {
