@@ -9,7 +9,7 @@ def create_app():
     CORS(app)  # Enable CORS for all routes
     
     # Connect to MongoDB via MongoEngine
-    mongo_uri = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/property_db')
+    mongo_uri = os.environ.get('MONGO_URI', 'mongodb+srv://johnemile2002_db_user:9bnihTnbvNc5u2BO@real-estate.ml220id.mongodb.net/')
     connect(host=mongo_uri)
 
     # Register blueprints (controllers)
