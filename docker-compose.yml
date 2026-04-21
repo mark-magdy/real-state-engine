@@ -9,7 +9,7 @@ services:
       - "5000:5000"
     environment:
       # Pass your MongoDB Atlas URI here or load it via .env file
-      - MONGO_URI=${MONGO_URI:-mongodb+srv://<username>:<password>@cluster0.example.mongodb.net/property_db?retryWrites=true&w=majority}
+      - MONGO_URI=${MONGO_URI:-mongodb+srv://johnemile2002_db_user:9bnihTnbvNc5u2BO@real-estate.ml220id.mongodb.net/}
     networks:
       - app-network
 
