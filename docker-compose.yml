@@ -10,6 +10,7 @@ services:
     environment:
       # Pass your MongoDB Atlas URI here or load it via .env file
       - MONGO_URI=${MONGO_URI:-mongodb+srv://johnemile2002_db_user:9bnihTnbvNc5u2BO@real-estate.ml220id.mongodb.net/}
+      - MONGO_DB=real-estate-db
     networks:
       - app-network
 
