@@ -17,7 +17,7 @@ bathrooms = []
 down_payments = []
 instalments = []
 
-for page in range(1, 6):  # choose how many pages you want
+for page in range(1, 11):  # choose how many pages you want
     if page == 1:
         url = base_url + "/"   # first page has no /page-1/
     else:
