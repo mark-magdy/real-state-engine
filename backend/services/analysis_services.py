@@ -20,6 +20,6 @@ class AnalysisService:
         # Placeholder for installments by area calculation logic
         return {"installments_by_area": "Installments by area calculation not implemented yet"}
 
-    def downpayment_percentage_by_area(self):
+    def calculate_downpayment_percentage_by_area(self):
         # Placeholder for downpayment percentage by area calculation logic
         return {"downpayment_percentage_by_area": "Downpayment percentage by area calculation not implemented yet"}
