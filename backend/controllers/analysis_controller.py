@@ -13,7 +13,7 @@ def get_return_on_investment():
 @analysis_bp.route('/average-price/<location>', methods=['GET'])
 def get_average_price(location):
     """Endpoint to calculate and return the average price for properties in a specific location."""
-    average_price_data = analysis_service.calculate_average_price(location)
+    average_price_data = analysis_service.calculate_average_price_by_location(location)
     return jsonify(average_price_data)
 
 @analysis_bp.route('/property-counts', methods=['GET'])
