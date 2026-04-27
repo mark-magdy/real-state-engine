@@ -4,26 +4,11 @@ from services.analysis_services import AnalysisService
 analysis_bp = Blueprint('analysis_bp', __name__)
 analysis_service = AnalysisService()
 
-@analysis_bp.route('/', methods=['POST'])
-def apply_filters():
-    """Endpoint to apply filters and return filtered property data."""
-    filters = request.json
-    query = analysis_service.build_filter(filters)
-    # Here you would typically query your database with the generated query
-    # For demonstration, we will just return the query as a response
-    return jsonify({"query": query})
-
 @analysis_bp.route('/roi', methods=['GET'])
 def get_return_on_investment():
     """Endpoint to calculate and return the average return on investment (ROI) for properties."""
     roi_data = analysis_service.calculate_return_on_investment()
     return jsonify(roi_data)
-
-@analysis_bp.route('/average-price/<location>', methods=['GET'])
-def get_average_price(location):
-    """Endpoint to calculate and return the average price for properties in a specific location."""
-    average_price_data = analysis_service.calculate_average_price_by_location(location)
-    return jsonify(average_price_data)
 
 @analysis_bp.route('/property-counts', methods=['GET'])
 def get_property_counts():
