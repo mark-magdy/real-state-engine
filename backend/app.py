@@ -4,6 +4,7 @@ from flask_cors import CORS
 from mongoengine import connect
 from controllers.property_controller import property_bp
 from controllers.analysis_controller import analysis_bp
+from services.property_service import PropertyService
 
 def create_app():
     app = Flask(__name__)
@@ -18,7 +19,7 @@ def create_app():
     app.register_blueprint(property_bp, url_prefix='/api/properties')
     app.register_blueprint(analysis_bp, url_prefix='/api/analysis')
 
-    from services.property_service import PropertyService
+
     PropertyService().initialize_database()  # Seed database with initial data if empty
 
     @app.route('/')
