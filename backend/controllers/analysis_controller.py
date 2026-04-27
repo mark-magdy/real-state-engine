@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from services.analysis_services import AnalysisService
 
 analysis_bp = Blueprint('analysis_bp', __name__)
@@ -31,11 +31,13 @@ def get_average_price_by_type():
 @analysis_bp.route('/installments-by-area', methods=['GET'])
 def get_installments_by_area():
     """Endpoint to analyze installment periods grouped by area."""
-    installments_data = analysis_service.calculate_installments_by_area()
+    filters = request.args.to_dict()
+    installments_data =  analysis_service.calculate_installments_by_area(filters)
     return jsonify(installments_data)
 
 @analysis_bp.route('/downpayment-percentage', methods=['GET'])
 def get_downpayment_percentage():
     """Endpoint to calculate the downpayment percentage (downpayment/total cost) vs area."""
-    downpayment_data = analysis_service.calculate_downpayment_percentage_by_area()
+    filters = request.args.to_dict()
+    downpayment_data = analysis_service.calculate_downpayment_percentage_by_area(filters)
     return jsonify(downpayment_data)
