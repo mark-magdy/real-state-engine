@@ -21,7 +21,16 @@ class Property(Document):
     full_price = FloatField()
 
     meta = {
-        "collection": "properties"
+        "collection": "properties",
+        "indexes": [
+            "area",
+            "compound",
+            "property_type",
+            "bedrooms",
+            "bathrooms",
+            "rent",
+            "full_price"
+        ]
     }
 
     def to_dict(self):
