@@ -2,22 +2,56 @@ pipeline {
     agent any
 
     stages {
+
         stage('Checkout') {
             steps {
-                echo 'Checking out code...'
                 checkout scm
             }
         }
 
-        stage('Test Backend') {
+        stage('Backend - Flask Install') {
             steps {
-                echo 'Testing Flask backend...'
+                dir('backend') {
+                    sh '''
+                        echo "Installing backend dependencies..."
+                        python -m venv venv
+                        . venv/bin/activate
+                        pip install -r requirements.txt
+                    '''
+                }
             }
         }
 
-        stage('Build Frontend') {
+        stage('Backend - Test') {
             steps {
-                echo 'Building Next.js frontend...'
+                dir('backend') {
+                    sh '''
+                        echo "Running backend checks..."
+                        python -m compileall .
+                    '''
+                }
+            }
+        }
+
+        stage('Frontend - Install') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        echo "Installing frontend dependencies..."
+                        npm install
+                    '''
+                }
+            }
+        }
+
+        stage('Frontend - Build') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        echo "Building Next.js app..."
+                        npm run build
+                    '''
+                }
             }
         }
     }
