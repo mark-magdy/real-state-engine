@@ -6,9 +6,9 @@ from datetime import datetime
 COMMON_COLUMNS = [
     "source", "property_id", "title", "compound", "area", "developer",
     "property_type", "bedrooms", "bathrooms", "size_sqm", "finishing",
-    "ready_by", "min_price", "currency", "rent_per_month", "rent_period",
-    "min_down_payment", "installment_percentage", "installment_type",
-    "listing_type", "location", "latitude", "longitude", "url", "photo_url"
+    "ready_by", "min_price", "currency", "min_down_payment",
+    "installment_percentage", "installment_type", "listing_type",
+    "location", "latitude", "longitude", "url", "photo_url"
 ]
 
 # ── Helper: detect listing type from URL + offering_type fallback ──
@@ -24,19 +24,7 @@ def detect_listing_type(share_url, offering_type=None):
             return "rent"
         if "sale" in ot or "sell" in ot:
             return "buy"
-    return "buy"  # default fallback
-
-# ── Helper: parse price into min_price / rent_per_month / rent_period ──
-def parse_price(price_obj, listing_type):
-    if not price_obj:
-        return None, None, None
-    value    = price_obj.get("value")
-    period   = price_obj.get("period", "")
-    if listing_type == "rent":
-        return None, value, period   # (min_price, rent_per_month, rent_period)
-    else:
-        return value, None, None     # (min_price, rent_per_month, rent_period)
-
+    return "buy"
 
 # ============================================================
 # SCRAPER 1 — PF NEW PROJECTS
@@ -57,7 +45,7 @@ def scrape_pf_new_projects(limit=50):
     PAGE_SIZE = 6
     rows = []
 
-    for page in range(1, 999):
+    for page in range(1, 99):
         if len(rows) >= limit:
             break
 
@@ -79,13 +67,10 @@ def scrape_pf_new_projects(limit=50):
             if len(rows) >= limit:
                 break
 
-            loc    = p.get("location", {}) or {}
-            coords = loc.get("coordinates", {}) or {}
+            loc      = p.get("location", {}) or {}
+            coords   = loc.get("coordinates", {}) or {}
             bedrooms = p.get("bedrooms", []) or []
             ptypes   = p.get("propertyTypes", []) or []
-
-            share_url    = "https://www.propertyfinder.eg" + p.get("shareUrl", "")
-            listing_type = detect_listing_type(share_url)  # new projects are always buy
 
             photo_url = None
             images = p.get("images") or []
@@ -109,16 +94,14 @@ def scrape_pf_new_projects(limit=50):
                 "ready_by":               p.get("deliveryDate"),
                 "min_price":              p.get("startingPrice"),
                 "currency":               "EGP",
-                "rent_per_month":         None,
-                "rent_period":            None,
                 "min_down_payment":       p.get("downPaymentPercentage"),
                 "installment_percentage": None,
                 "installment_type":       None,
-                "listing_type":           listing_type,
+                "listing_type":           "buy",  # new projects always buy
                 "location":               loc.get("fullName"),
                 "latitude":               coords.get("lat"),
                 "longitude":              coords.get("lon"),
-                "url":                    share_url,
+                "url":                    "https://www.propertyfinder.eg" + p.get("shareUrl", ""),
                 "photo_url":              photo_url,
             })
 
@@ -132,9 +115,9 @@ def scrape_pf_new_projects(limit=50):
 # SCRAPER 2 — PF RESALE + RENTAL
 # ============================================================
 
-def scrape_pf_listings(category_id, category_label, limit=50):
+def scrape_pf_listings(category_id, listing_type_label, limit=50):
     print(f"\n{'='*60}")
-    print(f"PROPERTYFINDER — {category_label.upper()} (first {limit})")
+    print(f"PROPERTYFINDER — {listing_type_label.upper()} (first {limit})")
     print("="*60)
 
     BASE = "https://www.propertyfinder.eg/api/pwa/property/search"
@@ -147,7 +130,7 @@ def scrape_pf_listings(category_id, category_label, limit=50):
     PAGE_SIZE = 25
     rows = []
 
-    for page in range(1, 999):
+    for page in range(1, 99):
         if len(rows) >= limit:
             break
 
@@ -175,18 +158,17 @@ def scrape_pf_listings(category_id, category_label, limit=50):
 
             loc    = p.get("location", {}) or {}
             coords = loc.get("coordinates", {}) or {}
-            size   = p.get("size", {}) or {}
             price  = p.get("price", {}) or {}
+            size   = p.get("size", {}) or {}
 
-            # ── listing_type: trust URL over category param ──
+            # ── correct listing_type from URL ──
             share_url    = p.get("share_url")
             offering     = p.get("offering_type")
             listing_type = detect_listing_type(share_url, offering)
 
-            # ── price routing ──
-            min_price, rent_per_month, rent_period = parse_price(price, listing_type)
+            # ── price: rent goes to min_price too, but we flag by listing_type ──
+            price_value = price.get("value")
 
-            # ── area from location_tree ──
             loc_tree = p.get("location_tree", []) or []
             area = None
             if loc_tree:
@@ -195,7 +177,6 @@ def scrape_pf_listings(category_id, category_label, limit=50):
                         area = node.get("name")
                         break
 
-            # ── photo ──
             photo_url = None
             images = p.get("images") or []
             if images:
@@ -217,14 +198,12 @@ def scrape_pf_listings(category_id, category_label, limit=50):
                 "size_sqm":               size.get("value"),
                 "finishing":              p.get("completion_status"),
                 "ready_by":               None,
-                "min_price":              min_price,
+                "min_price":              price_value,   # rent & buy both go here
                 "currency":               price.get("currency"),
-                "rent_per_month":         rent_per_month,
-                "rent_period":            rent_period,      # "monthly" / "daily"
                 "min_down_payment":       None,
                 "installment_percentage": None,
                 "installment_type":       None,
-                "listing_type":           listing_type,
+                "listing_type":           listing_type,  # ← fixed via URL
                 "location":               loc.get("full_name"),
                 "latitude":               coords.get("lat"),
                 "longitude":              coords.get("lon"),
@@ -252,7 +231,7 @@ def scrape_nawy(limit=50):
     PAGE_SIZE = 24
     rows = []
 
-    for page in range(1, 999):
+    for page in range(1, 99):
         if len(rows) >= limit:
             break
 
@@ -274,10 +253,10 @@ def scrape_nawy(limit=50):
             if len(rows) >= limit:
                 break
 
-            plan     = p.get("paymentPlan", {}) or {}
-            compound = p.get("compound", {}) or {}
-            area     = p.get("area", {}) or {}
-            developer= p.get("developer", {}) or {}
+            plan      = p.get("paymentPlan", {}) or {}
+            compound  = p.get("compound", {}) or {}
+            area      = p.get("area", {}) or {}
+            developer = p.get("developer", {}) or {}
 
             sale_type    = p.get("saleType", "")
             listing_type = "rent" if "rent" in sale_type.lower() else "buy"
@@ -290,13 +269,6 @@ def scrape_nawy(limit=50):
                     ).strftime("%Y-%m-%d")
                 except Exception:
                     pass
-
-            # ── price routing ──
-            raw_price = plan.get("minPrice")
-            if listing_type == "rent":
-                min_price, rent_per_month, rent_period = None, raw_price, "monthly"
-            else:
-                min_price, rent_per_month, rent_period = raw_price, None, None
 
             photo_url = (p.get("imageUrl")
                          or p.get("mainPhoto")
@@ -317,10 +289,8 @@ def scrape_nawy(limit=50):
                 "size_sqm":               p.get("unitArea"),
                 "finishing":              p.get("finishing"),
                 "ready_by":               ready_by,
-                "min_price":              min_price,
+                "min_price":              plan.get("minPrice"),
                 "currency":               plan.get("currency"),
-                "rent_per_month":         rent_per_month,
-                "rent_period":            rent_period,
                 "min_down_payment":       plan.get("minDownPayment"),
                 "installment_percentage": plan.get("installmentPercentage"),
                 "installment_type":       plan.get("installmentType"),
@@ -339,32 +309,50 @@ def scrape_nawy(limit=50):
 
 
 # ============================================================
-# RUN & PREVIEW
+# RUN ALL
 # ============================================================
 
 df_pf_new  = scrape_pf_new_projects(limit=50)
-df_pf_buy  = scrape_pf_listings(category_id=1, category_label="buy", limit=50)
-df_pf_rent = scrape_pf_listings(category_id=2, category_label="rent", limit=50)
+df_pf_buy  = scrape_pf_listings(category_id=1, listing_type_label="buy",  limit=50)
+df_pf_rent = scrape_pf_listings(category_id=2, listing_type_label="rent", limit=50)
 df_nawy    = scrape_nawy(limit=50)
 
 df_pf_all = pd.concat([df_pf_new, df_pf_buy, df_pf_rent], ignore_index=True)
 df_pf_all = df_pf_all.drop_duplicates(subset=["property_id", "listing_type"])
 
-# ── Verify listing_type classification ──
+# ── Preview ──
+print("\n" + "="*60)
+print("PREVIEW — photo_url column")
+print("="*60)
+print("\nPF New Projects:")
+print(df_pf_new[["title", "photo_url"]].head(3).to_string())
+print("\nPF Buy:")
+print(df_pf_buy[["title", "photo_url"]].head(3).to_string())
+print("\nPF Rent:")
+print(df_pf_rent[["title", "photo_url"]].head(3).to_string())
+print("\nNawy:")
+print(df_nawy[["title", "photo_url"]].head(3).to_string())
+
+print(f"\n✅ PF total: {len(df_pf_all):,} rows — photos: {df_pf_all['photo_url'].notna().sum():,}")
+print(f"✅ Nawy total: {len(df_nawy):,} rows — photos: {df_nawy['photo_url'].notna().sum():,}")
+
+# ── listing_type check ──
 print("\n── PF listing_type distribution ──")
 print(df_pf_all["listing_type"].value_counts())
 
-print("\n── Sample rent rows (should have rent_per_month, no min_price) ──")
-rent_sample = df_pf_all[df_pf_all["listing_type"] == "rent"][
-    ["title", "listing_type", "min_price", "rent_per_month", "rent_period", "bathrooms", "size_sqm"]
-].head(5)
-print(rent_sample.to_string())
+# ============================================================
+# SAVE
+# ============================================================
 
-print("\n── Sample buy rows (should have min_price, no rent_per_month) ──")
-buy_sample = df_pf_all[df_pf_all["listing_type"] == "buy"][
-    ["title", "listing_type", "min_price", "rent_per_month", "bathrooms", "size_sqm"]
-].head(5)
-print(buy_sample.to_string())
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-print(f"\n✅ PF total: {len(df_pf_all)} rows")
-print(f"✅ Nawy total: {len(df_nawy)} rows")
+df_pf_new.to_csv(f"pf_new_projects_{timestamp}.csv",  index=False, encoding="utf-8-sig")
+df_pf_buy.to_csv(f"pf_buy_{timestamp}.csv",           index=False, encoding="utf-8-sig")
+df_pf_rent.to_csv(f"pf_rent_{timestamp}.csv",         index=False, encoding="utf-8-sig")
+df_nawy.to_csv(f"nawy_{timestamp}.csv",               index=False, encoding="utf-8-sig")
+df_pf_all.to_csv(f"pf_all_{timestamp}.csv",           index=False, encoding="utf-8-sig")
+
+df_all = pd.concat([df_pf_all, df_nawy], ignore_index=True)
+df_all.to_csv(f"all_properties_{timestamp}.csv",      index=False, encoding="utf-8-sig")
+
+print("\n💾 CSV files saved successfully!")
