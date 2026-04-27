@@ -11,7 +11,6 @@ COMMON_COLUMNS = [
     "location", "latitude", "longitude", "url", "photo_url"
 ]
 
-# ── Helper: detect listing type from URL + offering_type fallback ──
 def detect_listing_type(share_url, offering_type=None):
     if share_url:
         if "/buy/" in share_url:
@@ -72,6 +71,11 @@ def scrape_pf_new_projects(limit=50):
             bedrooms = p.get("bedrooms", []) or []
             ptypes   = p.get("propertyTypes", []) or []
 
+            # ── Down payment: % → EGP value ──
+            starting_price = p.get("startingPrice")
+            down_pct       = p.get("downPaymentPercentage")
+            down_payment   = round(starting_price * down_pct / 100) if starting_price and down_pct else None
+
             photo_url = None
             images = p.get("images") or []
             if images:
@@ -92,12 +96,12 @@ def scrape_pf_new_projects(limit=50):
                 "size_sqm":               None,
                 "finishing":              None,
                 "ready_by":               p.get("deliveryDate"),
-                "min_price":              p.get("startingPrice"),
+                "min_price":              starting_price,
                 "currency":               "EGP",
-                "min_down_payment":       p.get("downPaymentPercentage"),
+                "min_down_payment":       down_payment,  # ← EGP value now
                 "installment_percentage": None,
                 "installment_type":       None,
-                "listing_type":           "buy",  # new projects always buy
+                "listing_type":           "buy",
                 "location":               loc.get("fullName"),
                 "latitude":               coords.get("lat"),
                 "longitude":              coords.get("lon"),
@@ -161,13 +165,9 @@ def scrape_pf_listings(category_id, listing_type_label, limit=50):
             price  = p.get("price", {}) or {}
             size   = p.get("size", {}) or {}
 
-            # ── correct listing_type from URL ──
             share_url    = p.get("share_url")
             offering     = p.get("offering_type")
             listing_type = detect_listing_type(share_url, offering)
-
-            # ── price: rent goes to min_price too, but we flag by listing_type ──
-            price_value = price.get("value")
 
             loc_tree = p.get("location_tree", []) or []
             area = None
@@ -198,12 +198,12 @@ def scrape_pf_listings(category_id, listing_type_label, limit=50):
                 "size_sqm":               size.get("value"),
                 "finishing":              p.get("completion_status"),
                 "ready_by":               None,
-                "min_price":              price_value,   # rent & buy both go here
+                "min_price":              price.get("value"),
                 "currency":               price.get("currency"),
-                "min_down_payment":       None,
+                "min_down_payment":       None,  # resale listings have no down payment
                 "installment_percentage": None,
                 "installment_type":       None,
-                "listing_type":           listing_type,  # ← fixed via URL
+                "listing_type":           listing_type,
                 "location":               loc.get("full_name"),
                 "latitude":               coords.get("lat"),
                 "longitude":              coords.get("lon"),
@@ -271,6 +271,81 @@ def scrape_nawy(limit=50):
                     pass
 
             photo_url = (p.get("imageUrl")
+                         or p.get("mainPhoto")
+                         or p.get("coverImage")
+                         or compound.get("coverImage")
+                         or compound.get("image"))
+
+            rows.append({
+                "source":                 "nawy",
+                "property_id":            p.get("id"),
+                "title":                  p.get("title"),
+                "compound":               compound.get("name"),
+                "area":                   area.get("name"),
+                "developer":              developer.get("name"),
+                "property_type":          p.get("propertyType"),
+                "bedrooms":               p.get("numberOfBedrooms"),
+                "bathrooms":              p.get("numberOfBathrooms"),
+                "size_sqm":               p.get("unitArea"),
+                "finishing":              p.get("finishing"),
+                "ready_by":               ready_by,
+                "min_price":              plan.get("minPrice"),
+                "currency":               plan.get("currency"),
+                "min_down_payment":       plan.get("minDownPayment"),  # already EGP
+                "installment_percentage": plan.get("installmentPercentage"),
+                "installment_type":       plan.get("installmentType"),
+                "listing_type":           listing_type,
+                "location":               area.get("name"),
+                "latitude":               None,
+                "longitude":              None,
+                "url":                    f"https://www.nawy.com/property/{p.get('slug', '')}",
+                "photo_url":              photo_url,
+            })
+
+        print(f"got {len(results)} (total so far: {len(rows)})")
+        time.sleep(1)
+
+    return pd.DataFrame(rows, columns=COMMON_COLUMNS)
+
+
+# ============================================================
+# RUN & PREVIEW
+# ============================================================
+
+df_pf_new  = scrape_pf_new_projects(limit=50)
+df_pf_buy  = scrape_pf_listings(category_id=1, listing_type_label="buy",  limit=50)
+df_pf_rent = scrape_pf_listings(category_id=2, listing_type_label="rent", limit=50)
+df_nawy    = scrape_nawy(limit=50)
+
+df_pf_all = pd.concat([df_pf_new, df_pf_buy, df_pf_rent], ignore_index=True)
+df_pf_all = df_pf_all.drop_duplicates(subset=["property_id", "listing_type"])
+
+# ── Preview down payment consistency ──
+print("\n── PF New Projects — min_price vs min_down_payment ──")
+print(df_pf_new[["title", "min_price", "min_down_payment"]].head(5).to_string())
+
+print("\n── Nawy — min_price vs min_down_payment ──")
+print(df_nawy[["title", "min_price", "min_down_payment"]].head(5).to_string())
+
+print(f"\n✅ PF total: {len(df_pf_all):,} rows")
+print(f"✅ Nawy total: {len(df_nawy):,} rows")
+
+# ============================================================
+# SAVE
+# ============================================================
+
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+df_pf_new.to_csv(f"pf_new_projects_{timestamp}.csv",  index=False, encoding="utf-8-sig")
+df_pf_buy.to_csv(f"pf_buy_{timestamp}.csv",           index=False, encoding="utf-8-sig")
+df_pf_rent.to_csv(f"pf_rent_{timestamp}.csv",         index=False, encoding="utf-8-sig")
+df_nawy.to_csv(f"nawy_{timestamp}.csv",               index=False, encoding="utf-8-sig")
+df_pf_all.to_csv(f"pf_all_{timestamp}.csv",           index=False, encoding="utf-8-sig")
+
+df_all = pd.concat([df_pf_all, df_nawy], ignore_index=True)
+df_all.to_csv(f"all_properties_{timestamp}.csv",      index=False, encoding="utf-8-sig")
+
+print("\n💾 CSV files saved successfully!")imageUrl")
                          or p.get("mainPhoto")
                          or p.get("coverImage")
                          or compound.get("coverImage")
