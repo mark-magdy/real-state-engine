@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Test Backend') {
+            steps {
+                echo 'Testing Flask backend...'
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                echo 'Building Next.js frontend...'
+            }
+        }
+    }
+}

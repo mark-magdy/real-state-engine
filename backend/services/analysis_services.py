@@ -12,12 +12,11 @@ class AnalysisService:
         if "compound" in filters:
             query["compound"] = filters["compound"]
 
-        if "min_price" in filters or "max_price" in filters:
-            query["full_price"] = {}
-            if "min_price" in filters:
-                query["full_price"]["$gte"] = filters["min_price"]
-            if "max_price" in filters:
-                query["full_price"]["$lte"] = filters["max_price"]
+        if "min_price" in filters:
+            query["full_price__gte"] = float(filters["min_price"])
+            
+        if "max_price" in filters:
+            query["full_price__lte"] = float(filters["max_price"])
 
         if "bedrooms" in filters:
             query["bedrooms"] = filters["bedrooms"]
@@ -46,7 +45,7 @@ class AnalysisService:
             }
         ]
 
-        results = list(self.collection.aggregate(pipeline))
+        results = list(Property.objects.aggregate(pipeline))
 
         return {
             "property_counts_by_area": [
@@ -73,7 +72,7 @@ class AnalysisService:
             }
         ]
 
-        results = list(self.collection.aggregate(pipeline))
+        results = list(Property.objects.aggregate(pipeline))
 
         return {
             "avg_price_by_type": [
