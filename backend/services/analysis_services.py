@@ -32,14 +32,60 @@ class AnalysisService:
         # Placeholder for average price calculation logic
         return {"average_price": f"Average price for location {location} not implemented yet"}
     
-    def calculate_property_counts_by_area(self):
-        # Placeholder for property count calculation logic
-        return {"property_counts": "Property counts by area calculation not implemented yet"}
-    
-    def calculate_avg_price_by_type(self):
-        # Placeholder for average price by type calculation logic
-        return {"average_price_by_type": "Average price by type calculation not implemented yet"}
+    def calculate_property_counts_by_area(self, filters=None):
+        pipeline = [
+            {"$match": self.build_filter(filters or {})},
+            {
+                "$group": {
+                    "_id": "$area",
+                    "property_count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"property_count": -1}
+            }
+        ]
 
+        results = list(self.collection.aggregate(pipeline))
+
+        return {
+            "property_counts_by_area": [
+                {
+                    "area": r["_id"],
+                    "property_count": r["property_count"]
+                }
+                for r in results
+            ]
+        }
+    
+    def calculate_avg_price_by_type(self, filters=None):
+        pipeline = [
+            {"$match": self.build_filter(filters or {})},
+            {
+                "$group": {
+                    "_id": "$property_type",
+                    "avg_price": {"$avg": "$full_price"},
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"avg_price": -1}
+            }
+        ]
+
+        results = list(self.collection.aggregate(pipeline))
+
+        return {
+            "avg_price_by_type": [
+                {
+                    "property_type": r["_id"],
+                    "avg_price": r["avg_price"],
+                    "count": r["count"]
+                }
+                for r in results
+            ]
+        }
+    
     def calculate_installments_by_area(self, filters=None):
         match_stage = {"$match": self.build_filter(filters or {})}
 

@@ -19,13 +19,15 @@ def get_average_price(location):
 @analysis_bp.route('/property-counts', methods=['GET'])
 def get_property_counts():
     """Endpoint to return the count of properties grouped by type for each area."""
-    count_data = analysis_service.calculate_property_counts_by_area()
+    filters = request.args.to_dict()
+    count_data = analysis_service.calculate_property_counts_by_area(filters)
     return jsonify(count_data)
 
 @analysis_bp.route('/average-price-by-type', methods=['GET'])
 def get_average_price_by_type():
     """Endpoint to calculate and return average prices for each property type."""
-    avg_price_data = analysis_service.calculate_avg_price_by_type()
+    filters = request.args.to_dict()
+    avg_price_data = analysis_service.calculate_avg_price_by_type(filters)
     return jsonify(avg_price_data)
 
 @analysis_bp.route('/installments-by-area', methods=['GET'])
