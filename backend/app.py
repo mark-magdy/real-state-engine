@@ -3,6 +3,8 @@ from flask import Flask
 from flask_cors import CORS
 from mongoengine import connect
 from controllers.property_controller import property_bp
+from controllers.analysis_controller import analysis_bp
+from services.property_service import PropertyService
 
 def create_app():
     app = Flask(__name__)
@@ -10,10 +12,15 @@ def create_app():
     
     # Connect to MongoDB via MongoEngine
     mongo_uri = os.environ.get('MONGO_URI', 'mongodb+srv://johnemile2002_db_user:9bnihTnbvNc5u2BO@real-estate.ml220id.mongodb.net/')
-    connect(host=mongo_uri)
+    mongo_db = os.environ.get('MONGO_DB', 'real-estate-db')
+    connect(db=mongo_db,host=mongo_uri)
 
     # Register blueprints (controllers)
     app.register_blueprint(property_bp, url_prefix='/api/properties')
+    app.register_blueprint(analysis_bp, url_prefix='/api/analysis')
+
+
+    PropertyService().initialize_database()  # Seed database with initial data if empty
 
     @app.route('/')
     def index():

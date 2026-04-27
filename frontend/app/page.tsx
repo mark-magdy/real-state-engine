@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 
 type Property = {
-  id: number;
+  id: string;
   title: string;
-  type: string;
-  price: number;
+  property_type: string;
+  full_price?: number;
+  rent?: number;
 };
 
 export default function Home() {
@@ -45,11 +46,12 @@ export default function Home() {
               <div key={prop.id} className="bg-white dark:bg-zinc-800 p-6 rounded-lg shadow-md border border-zinc-200 dark:border-zinc-700">
                 <h2 className="text-2xl font-semibold mb-2">{prop.title}</h2>
                 <div className="flex justify-between items-center mt-4">
-                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-sm font-medium px-2.5 py-0.5 rounded">
-                    {prop.type}
+                  <span>
+                    {prop.property_type}
                   </span>
-                  <span className="font-bold text-green-700 dark:text-green-400">
-                    ${prop.price.toLocaleString()}
+
+                  <span>
+                    ${(prop.full_price ?? prop.rent ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>
