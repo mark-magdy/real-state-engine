@@ -7,8 +7,15 @@ analysis_service = AnalysisService()
 @analysis_bp.route('/roi', methods=['GET'])
 def get_return_on_investment():
     """Endpoint to calculate and return the average return on investment (ROI) for properties."""
-    roi_data = analysis_service.calculate_return_on_investment()
-    return jsonify(roi_data)
+    try:
+        filters = request.args.to_dict()
+        roi_data = analysis_service.calculate_return_on_investment(filters)
+        return jsonify(roi_data), 200
+    except ValueError:
+        return jsonify({
+            "error": "Bad Request", 
+            "message": "Invalid filter value provided."
+        }), 400
 
 @analysis_bp.route('/property-counts', methods=['GET'])
 def get_property_counts():

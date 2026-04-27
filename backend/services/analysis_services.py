@@ -12,21 +12,60 @@ class AnalysisService:
         if "compound" in filters:
             query["compound"] = filters["compound"]
 
-        if "min_price" in filters or "max_price" in filters:
-            query["full_price"] = {}
-            if "min_price" in filters:
-                query["full_price"]["$gte"] = filters["min_price"]
-            if "max_price" in filters:
-                query["full_price"]["$lte"] = filters["max_price"]
+        if "min_price" in filters:
+            query["full_price__gte"] = float(filters["min_price"])
+            
+        if "max_price" in filters:
+            query["full_price__lte"] = float(filters["max_price"])
 
         if "bedrooms" in filters:
-            query["bedrooms"] = filters["bedrooms"]
+            query["bedrooms"] = int(filters["bedrooms"])
 
         return query
     
-    def calculate_return_on_investment(self):
-        # Placeholder for ROI calculation logic
-        return {"roi": "ROI calculation not implemented yet"}
+    def calculate_return_on_investment(self, filters=None):
+        """Calculating ROI"""
+        query = self.build_filter(filters or {})
+        apartments = Property.objects(**query, rent__ne=None)
+        roi = {}
+        for apt in apartments:
+            annual_rent = apt.rent * 12 if apt.rent else None
+            
+            area = apt.area if apt.area else "Unknown area"
+            if area not in roi:
+                roi[area] = []
+
+            if apt.down_payment and apt.installment:
+                first_year_cash_invested = apt.down_payment + (apt.installment * 12)
+                if first_year_cash_invested > 0:
+                    roi_value = (annual_rent / first_year_cash_invested) * 100
+                    roi[area].append({
+                        "title": apt.title,
+                        "compound": apt.compound,
+                        "investment_type": "Installment plan",
+                        "full_price": apt.full_price,
+                        "apartment_type": apt.property_type.value,
+                        "down_payment": apt.down_payment,
+                        "installment": apt.installment,
+                        "rent": apt.rent,
+                        "roi_percentage": round(roi_value, 2),
+                        "months_to_recover_year_one_cash": round(first_year_cash_invested / apt.rent, 2) 
+                    })
+
+            elif apt.full_price:
+                roi_value = (annual_rent / apt.full_price) * 100
+
+                roi[area].append({
+                    "title": apt.title,
+                    "compound": apt.compound,
+                    "apartment_type": apt.property_type.value,
+                    "investment_type": "Full Price",
+                    "full_price": apt.full_price,
+                    "rent": apt.rent,
+                    "roi_percentage": round(roi_value, 2),
+                    "months_to_break_even": round(apt.full_price / apt.rent, 2)
+                })
+        return {"roi": roi}
 
     def calculate_average_price_by_location(self, location):
         # Placeholder for average price calculation logic
