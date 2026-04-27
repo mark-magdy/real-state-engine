@@ -67,9 +67,6 @@ class AnalysisService:
                 })
         return {"roi": roi}
 
-    def calculate_average_price_by_location(self, location):
-        # Placeholder for average price calculation logic
-        return {"average_price": f"Average price for location {location} not implemented yet"}
     
     def calculate_property_counts_by_area(self, filters=None):
         pipeline = [
