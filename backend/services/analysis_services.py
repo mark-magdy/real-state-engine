@@ -100,7 +100,7 @@ class AnalysisService:
             }
         ]
 
-        results = list(self.collection.aggregate(pipeline))
+        results = list(Property.objects.aggregate(pipeline))
 
         return {
             "property_counts_by_area": [
@@ -118,7 +118,7 @@ class AnalysisService:
             {
                 "$group": {
                     "_id": "$property_type",
-                    "avg_price": {"$avg": "$full_price"},
+                    "avg_price": {"$avg": "$price"},
                     "count": {"$sum": 1}
                 }
             },
@@ -127,7 +127,7 @@ class AnalysisService:
             }
         ]
 
-        results = list(self.collection.aggregate(pipeline))
+        results = list(Property.objects.aggregate(pipeline))
 
         return {
             "avg_price_by_type": [
@@ -150,6 +150,11 @@ class AnalysisService:
                     "_id": "$area",
                     "avg_installment": {"$avg": "$installment"},
                     "count": {"$sum": 1}
+                }
+            },
+            {
+                "$match": {
+                    "avg_installment": {"$ne": None}
                 }
             }
         ]
@@ -177,11 +182,11 @@ class AnalysisService:
                     "area": 1,
                     "downpayment_percentage": {
                         "$cond": [
-                            {"$eq": ["$full_price", 0]},
+                            {"$eq": ["$price", 0]},
                             0,
                             {
                                 "$multiply": [
-                                    {"$divide": ["$down_payment", "$full_price"]},
+                                    {"$divide": ["$down_payment", "$price"]},
                                     100
                                 ]
                             }

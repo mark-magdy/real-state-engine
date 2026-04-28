@@ -12,7 +12,7 @@ def create_app():
     
     # Connect to MongoDB via MongoEngine
     mongo_uri = os.environ.get('MONGO_URI', 'mongodb+srv://johnemile2002_db_user:9bnihTnbvNc5u2BO@real-estate.ml220id.mongodb.net/')
-    mongo_db = os.environ.get('MONGO_DB', 'real-estate-db')
+    mongo_db = os.environ.get('MONGO_DB')
     connect(db=mongo_db,host=mongo_uri)
 
     # Register blueprints (controllers)

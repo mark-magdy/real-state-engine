@@ -276,7 +276,7 @@ class PropertyService:
     # property_type → take first type
         clean_data = []
         for row in data:
-            row = {k.strip(): v for k, v in row.items()}  # ✅ fix headers
+            row = {str(k).replace("\ufeff", "").strip().lower(): v for k, v in row.items()}# ✅ fix headers
                 
             try:
                 prop_type = row.get("property_type", "").split(",")[0].strip().lower()
@@ -296,18 +296,30 @@ class PropertyService:
                     bedrooms = 0
                 
                 compound = row.get("compound", "").strip()
+                source = next(iter(row.values()))
+                area = row.get("area", "").strip()
+                installment = ""
+
+                if source == "propertyfinder":
+                    parts = [p.strip() for p in area.split(",") if p.strip()]
+                    area = parts[1] if len(parts) >= 2 else area
+
+                else:
+                    installment = row.get("installment_percentage", "").strip()
+                
+                area = area.replace("City", "").strip()
 
                 clean_data.append({
                     "title": f"{prop_type.title()} , {compound}" if compound else prop_type.title(),
                     "property_type": prop_type,
-                    "area": row["area"],
+                    "area": area,
                     "compound": compound,
                     "meter_square": int(float(row.get("size_sqm") or 0)),
                     "bedrooms": bedrooms,
                     "bathrooms": int(float(row.get("bathrooms") or 0)),
                     "price": float(row.get("min_price") or 0),
                     "down_payment": float(row.get("min_down_payment") or 0),
-                    "installment": "",
+                    "installment": installment,
                     "url": row.get("url", ""),
                     "listing_type": "rent" if row.get("rent") else "buy"
                 })
@@ -360,7 +372,9 @@ class PropertyService:
             parts = [p.strip() for p in location.split(",")]
 
             compound = parts[0] if parts else ""
-            area = parts[-1] if len(parts) > 1 else location
+            area = parts[-2] if len(parts) > 1 else location
+
+            area = area.replace("City", "").strip()
 
             clean_data.append({
                 "title": f"{prop_type.title()} , {compound}" if compound else prop_type.title(),
