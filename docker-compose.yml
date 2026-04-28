@@ -5,12 +5,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
+      - "5678:5678"
     environment:
     
       MONGO_URI: mongodb+srv://johnemile2002_db_user:9bnihTnbvNc5u2BO@real-estate.ml220id.mongodb.net/
-      MONGO_DB: real-estate-db
+      MONGO_DB: clean_real_estate_db
     volumes:
       - ./backend:/app
+    #command: ["sh","-c","pip install debugpy -t /tmp && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 -m flask run --no-debugger --reload --host 0.0.0.0 --port 5000"]
+
   
   # frontend:
   #   build: 
