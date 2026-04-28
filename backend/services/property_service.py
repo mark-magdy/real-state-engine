@@ -270,6 +270,48 @@ class PropertyService:
         if prop:
             return prop.to_dict()
         return None
+
+    def search_properties(self, filters, page=1, limit=12):
+        query = {}
+        
+        # Mandatory-ish filters (if provided)
+        if filters.get('area'):
+            query['area__icontains'] = filters['area']
+        
+        if filters.get('listing_type'):
+            query['listing_type'] = filters['listing_type']
+            
+        # Optional filters
+        if filters.get('property_type'):
+            query['property_type'] = filters['property_type']
+            
+        if filters.get('min_price'):
+            query['price__gte'] = float(filters['min_price'])
+            
+        if filters.get('max_price'):
+            query['price__lte'] = float(filters['max_price'])
+            
+        if filters.get('bedrooms'):
+            query['bedrooms__gte'] = int(filters['bedrooms'])
+            
+        if filters.get('bathrooms'):
+            query['bathrooms__gte'] = int(filters['bathrooms'])
+            
+        if filters.get('compound'):
+            query['compound__icontains'] = filters['compound']
+
+        # Pagination
+        offset = (page - 1) * limit
+        total_count = Property.objects(**query).count()
+        properties = Property.objects(**query).skip(offset).limit(limit)
+        
+        return {
+            "properties": [prop.to_dict() for prop in properties],
+            "total_count": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_count + limit - 1) // limit
+        }
     
     def clean_property(self,data):
 

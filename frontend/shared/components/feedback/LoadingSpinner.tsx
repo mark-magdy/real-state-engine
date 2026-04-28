@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   text?: string;
+  className?: string;
 }
 
 const sizeMap = {
@@ -11,9 +12,9 @@ const sizeMap = {
   lg: 'h-8 w-8',
 };
 
-export function LoadingSpinner({ size = 'md', text }: LoadingSpinnerProps) {
+export function LoadingSpinner({ size = 'md', text, className = '' }: LoadingSpinnerProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 gap-3">
+    <div className={`flex flex-col items-center justify-center py-12 gap-3 ${className}`}>
       <Loader2 className={`${sizeMap[size]} animate-spin text-coral`} />
       {text && <p className="text-sm text-muted-foreground">{text}</p>}
     </div>

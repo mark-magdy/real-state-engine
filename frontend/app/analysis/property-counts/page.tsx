@@ -1,13 +1,11 @@
-'use client';
+import { PropertyCountsAnalysis } from '@/features/analysis';
+import { Metadata } from 'next';
 
-import { GenericAnalysisPage } from '@/features/analysis';
+export const metadata: Metadata = {
+  title: 'Property Counts by Area — REI Engine',
+  description: 'See the distribution of property types and inventory counts',
+};
 
 export default function PropertyCountsPage() {
-  return (
-    <GenericAnalysisPage
-      endpoint="property-counts"
-      title="Property Counts by Area"
-      subtitle="See the distribution of property types and inventory counts across different areas."
-    />
-  );
+  return <PropertyCountsAnalysis />;
 }

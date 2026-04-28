@@ -1,13 +1,11 @@
-'use client';
+import { InstallmentsAnalysis } from '@/features/analysis';
+import { Metadata } from 'next';
 
-import { GenericAnalysisPage } from '@/features/analysis';
+export const metadata: Metadata = {
+  title: 'Installment Analysis — REI Engine',
+  description: 'Analyze average maximum installment durations.',
+};
 
 export default function InstallmentsPage() {
-  return (
-    <GenericAnalysisPage
-      endpoint="installments-by-area"
-      title="Installment Plans"
-      subtitle="Analyze installment periods and payment structures across different areas."
-    />
-  );
+  return <InstallmentsAnalysis />;
 }

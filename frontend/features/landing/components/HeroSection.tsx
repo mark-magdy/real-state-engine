@@ -17,13 +17,13 @@ export function HeroSection() {
       <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-32">
         <div className="text-center space-y-6 animate-fade-in">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-coral/20 bg-coral-light px-4 py-1.5">
+          {/* <div className="inline-flex items-center gap-2 rounded-full border border-coral/20 bg-coral-light px-4 py-1.5">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-coral opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-coral" />
             </span>
             <span className="text-xs font-semibold text-coral">AI-Powered Analytics</span>
-          </div>
+          </div> */}
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.1]">

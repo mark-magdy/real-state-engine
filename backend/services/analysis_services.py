@@ -138,6 +138,34 @@ class AnalysisService:
                 for r in results
             ]
         }
+
+    def calculate_avg_price_by_area(self, filters=None):
+        pipeline = [
+            {"$match": self.build_filter(filters or {})},
+            {
+                "$group": {
+                    "_id": "$area",
+                    "avg_price": {"$avg": "$price"},
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"avg_price": -1}
+            }
+        ]
+
+        results = list(Property.objects.aggregate(pipeline))
+
+        return {
+            "avg_price_by_area": [
+                {
+                    "area": r["_id"],
+                    "avg_price": r["avg_price"],
+                    "count": r["count"]
+                }
+                for r in results
+            ]
+        }
     
     def calculate_installments_by_area(self, filters=None):
         match_stage = {"$match": self.build_filter(filters or {})}

@@ -11,6 +11,9 @@ export interface Property {
   bathrooms: number;
   rent: number | null;
   full_price: number | null;
+  price?: number | null;
+  listing_type?: string;
+  url?: string;
 }
 
 export interface ApiResponse<T> {

@@ -1,13 +1,11 @@
-'use client';
+import { DownpaymentAnalysis } from '@/features/analysis';
+import { Metadata } from 'next';
 
-import { GenericAnalysisPage } from '@/features/analysis';
+export const metadata: Metadata = {
+  title: 'Downpayment Analysis — REI Engine',
+  description: 'Average downpayment requirements across areas.',
+};
 
 export default function DownpaymentPage() {
-  return (
-    <GenericAnalysisPage
-      endpoint="downpayment-percentage"
-      title="Down Payment Analysis"
-      subtitle="Compare down payment requirements as a percentage of total cost across areas."
-    />
-  );
+  return <DownpaymentAnalysis />;
 }

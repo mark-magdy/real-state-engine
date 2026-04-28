@@ -1,13 +1,11 @@
-'use client';
+import { AveragePriceByTypeAnalysis } from '@/features/analysis';
+import { Metadata } from 'next';
 
-import { GenericAnalysisPage } from '@/features/analysis';
+export const metadata: Metadata = {
+  title: 'Average Price by Type — REI Engine',
+  description: 'Compare property valuations dynamically based on real estate classification.',
+};
 
 export default function PriceByTypePage() {
-  return (
-    <GenericAnalysisPage
-      endpoint="average-price-by-type"
-      title="Price by Property Type"
-      subtitle="Compare average prices across apartments, villas, townhouses, and more."
-    />
-  );
+  return <AveragePriceByTypeAnalysis />;
 }

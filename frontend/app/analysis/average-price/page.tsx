@@ -1,13 +1,11 @@
-'use client';
+import { AveragePriceByAreaAnalysis } from '@/features/analysis';
+import { Metadata } from 'next';
 
-import { GenericAnalysisPage } from '@/features/analysis';
+export const metadata: Metadata = {
+  title: 'Average Price by Location â€” REI Engine',
+  description: 'Compare average property prices across different neighborhoods and cities.',
+};
 
 export default function AveragePricePage() {
-  return (
-    <GenericAnalysisPage
-      endpoint="average-price/all"
-      title="Average Price by Location"
-      subtitle="Compare average property prices across different neighborhoods and cities."
-    />
-  );
+  return <AveragePriceByAreaAnalysis />;
 }

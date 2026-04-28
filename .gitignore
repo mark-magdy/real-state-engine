@@ -1,26 +1,30 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.js
 
 # testing
-/coverage
+coverage/
 
-# next.js
-/.next/
-/out/
-build
+# next.js & builds
+.next/
+out/
+build/
+dist/
 
-# misc
-.DS_Store
-*.pem
+# environment secrets (matches .env in any folder)
 .env
+*.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# misc
+.DS_Store
+*.pem
 
 # python
 __pycache__/
@@ -30,5 +34,5 @@ venv/
 env/
 .venv/
 
-# docker
+# data/docker
 mongodb_data/

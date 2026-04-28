@@ -31,6 +31,13 @@ def get_average_price_by_type():
     avg_price_data = analysis_service.calculate_avg_price_by_type(filters)
     return jsonify(avg_price_data)
 
+@analysis_bp.route('/average-price-by-area', methods=['GET'])
+def get_average_price_by_area():
+    """Endpoint to calculate and return average prices for each area."""
+    filters = request.args.to_dict()
+    avg_price_data = analysis_service.calculate_avg_price_by_area(filters)
+    return jsonify(avg_price_data)
+
 @analysis_bp.route('/installments-by-area', methods=['GET'])
 def get_installments_by_area():
     """Endpoint to analyze installment periods grouped by area."""
