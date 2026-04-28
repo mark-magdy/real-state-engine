@@ -20,7 +20,7 @@ def create_app():
     app.register_blueprint(analysis_bp, url_prefix='/api/analysis')
 
 
-    PropertyService().initialize_database()  # Seed database with initial data if empty
+    #PropertyService().initialize_database()  # Seed database with initial data if empty
 
     @app.route('/')
     def index():
