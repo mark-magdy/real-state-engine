@@ -25,11 +25,19 @@ def detect_listing_type(share_url, offering_type=None):
             return "buy"
     return "buy"
 
+def safe_int(val):
+    if val is None:
+        return None
+    try:
+        return int(float(str(val)))
+    except (ValueError, TypeError):
+        return None
+
 # ============================================================
 # SCRAPER 1 — PF NEW PROJECTS
 # ============================================================
 
-def scrape_pf_new_projects(limit=50):
+def scrape_pf_new_projects(limit=1000):
     print("\n" + "="*60)
     print(f"PROPERTYFINDER — NEW PROJECTS (first {limit})")
     print("="*60)
@@ -44,11 +52,17 @@ def scrape_pf_new_projects(limit=50):
     PAGE_SIZE = 6
     rows = []
 
-    for page in range(1, 99):
+    r = requests.get(BASE, headers=headers,
+                     params={"page[limit]": PAGE_SIZE, "page[number]": 1,
+                             "sort": "mr", "locale": "en"})
+    total_pages = r.json().get("meta", {}).get("pagination", {}).get("total", 9999)
+    print(f"Total pages: {total_pages}")
+
+    for page in range(1, total_pages + 1):
         if len(rows) >= limit:
             break
 
-        print(f"  Page {page}", end=" ... ")
+        print(f"  Page {page}/{total_pages}", end=" ... ")
         r = requests.get(BASE, headers=headers,
                          params={"page[limit]": PAGE_SIZE, "page[number]": page,
                                  "sort": "mr", "locale": "en"})
@@ -76,6 +90,10 @@ def scrape_pf_new_projects(limit=50):
             down_pct       = p.get("downPaymentPercentage")
             down_payment   = round(starting_price * down_pct / 100) if starting_price and down_pct else None
 
+            # ── Installment: years from paymentPlans ──
+            payment_plans         = p.get("paymentPlans") or []
+            installment_percentage = payment_plans[0] if payment_plans else None
+
             photo_url = None
             images = p.get("images") or []
             if images:
@@ -98,8 +116,8 @@ def scrape_pf_new_projects(limit=50):
                 "ready_by":               p.get("deliveryDate"),
                 "min_price":              starting_price,
                 "currency":               "EGP",
-                "min_down_payment":       down_payment,  # ← EGP value now
-                "installment_percentage": None,
+                "min_down_payment":       down_payment,
+                "installment_percentage": installment_percentage,
                 "installment_type":       None,
                 "listing_type":           "buy",
                 "location":               loc.get("fullName"),
@@ -119,7 +137,7 @@ def scrape_pf_new_projects(limit=50):
 # SCRAPER 2 — PF RESALE + RENTAL
 # ============================================================
 
-def scrape_pf_listings(category_id, listing_type_label, limit=50):
+def scrape_pf_listings(category_id, listing_type_label, limit=1000):
     print(f"\n{'='*60}")
     print(f"PROPERTYFINDER — {listing_type_label.upper()} (first {limit})")
     print("="*60)
@@ -134,7 +152,7 @@ def scrape_pf_listings(category_id, listing_type_label, limit=50):
     PAGE_SIZE = 25
     rows = []
 
-    for page in range(1, 99):
+    for page in range(1, 9999):
         if len(rows) >= limit:
             break
 
@@ -194,13 +212,13 @@ def scrape_pf_listings(category_id, listing_type_label, limit=50):
                 "developer":              None,
                 "property_type":          p.get("property_type"),
                 "bedrooms":               p.get("bedrooms"),
-                "bathrooms":              int(p["bathrooms"]) if p.get("bathrooms") else None,
+                "bathrooms":              safe_int(p.get("bathrooms")),
                 "size_sqm":               size.get("value"),
                 "finishing":              p.get("completion_status"),
                 "ready_by":               None,
                 "min_price":              price.get("value"),
                 "currency":               price.get("currency"),
-                "min_down_payment":       None,  # resale listings have no down payment
+                "min_down_payment":       None,
                 "installment_percentage": None,
                 "installment_type":       None,
                 "listing_type":           listing_type,
@@ -221,7 +239,7 @@ def scrape_pf_listings(category_id, listing_type_label, limit=50):
 # SCRAPER 3 — NAWY
 # ============================================================
 
-def scrape_nawy(limit=50):
+def scrape_nawy(limit=1000):
     print("\n" + "="*60)
     print(f"NAWY — ALL PROPERTIES (first {limit})")
     print("="*60)
@@ -231,7 +249,7 @@ def scrape_nawy(limit=50):
     PAGE_SIZE = 24
     rows = []
 
-    for page in range(1, 99):
+    for page in range(1, 9999):
         if len(rows) >= limit:
             break
 
@@ -291,8 +309,8 @@ def scrape_nawy(limit=50):
                 "ready_by":               ready_by,
                 "min_price":              plan.get("minPrice"),
                 "currency":               plan.get("currency"),
-                "min_down_payment":       plan.get("minDownPayment"),  # already EGP
-                "installment_percentage": plan.get("installmentPercentage"),
+                "min_down_payment":       plan.get("minDownPayment"),
+                "installment_percentage": plan.get("minInstallment"),  # EGP monthly amount
                 "installment_type":       plan.get("installmentType"),
                 "listing_type":           listing_type,
                 "location":               area.get("name"),
@@ -309,26 +327,32 @@ def scrape_nawy(limit=50):
 
 
 # ============================================================
-# RUN & PREVIEW
+# RUN ALL
 # ============================================================
 
-df_pf_new  = scrape_pf_new_projects(limit=50)
-df_pf_buy  = scrape_pf_listings(category_id=1, listing_type_label="buy",  limit=50)
-df_pf_rent = scrape_pf_listings(category_id=2, listing_type_label="rent", limit=50)
-df_nawy    = scrape_nawy(limit=50)
+df_pf_new  = scrape_pf_new_projects(limit=1000)
+df_pf_buy  = scrape_pf_listings(category_id=1, listing_type_label="buy",  limit=1000)
+df_pf_rent = scrape_pf_listings(category_id=2, listing_type_label="rent", limit=1000)
+df_nawy    = scrape_nawy(limit=1000)
 
 df_pf_all = pd.concat([df_pf_new, df_pf_buy, df_pf_rent], ignore_index=True)
 df_pf_all = df_pf_all.drop_duplicates(subset=["property_id", "listing_type"])
 
-# ── Preview down payment consistency ──
-print("\n── PF New Projects — min_price vs min_down_payment ──")
-print(df_pf_new[["title", "min_price", "min_down_payment"]].head(5).to_string())
+# ── Preview ──
+print("\n── PF New Projects — payment fields ──")
+print(df_pf_new[["title", "min_price", "min_down_payment",
+                  "installment_percentage"]].head(5).to_string())
 
-print("\n── Nawy — min_price vs min_down_payment ──")
-print(df_nawy[["title", "min_price", "min_down_payment"]].head(5).to_string())
+print("\n── Nawy — payment fields ──")
+print(df_nawy[["title", "min_price", "min_down_payment",
+               "installment_percentage", "installment_type"]].head(5).to_string())
 
 print(f"\n✅ PF total: {len(df_pf_all):,} rows")
 print(f"✅ Nawy total: {len(df_nawy):,} rows")
+
+# ── listing_type check ──
+print("\n── PF listing_type distribution ──")
+print(df_pf_all["listing_type"].value_counts())
 
 # ============================================================
 # SAVE
