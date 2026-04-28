@@ -20,11 +20,21 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "REI Engine — Real Estate Analytics",
+    default: "REI Engine — Find Best Value Real Estate Investments",
     template: "%s | REI Engine",
   },
   description:
-    "Data-driven real estate analytics platform. Get market insights, ROI analysis, and property comparisons to make smarter investment decisions.",
+    "The ultimate platform for analyzing the best value real estate investments in Egypt. Find and compare properties across many websites from one place, calculate ROI, and get data-driven market insights.",
+  keywords: ["real estate investment", "property search egypt", "ROI analysis", "real estate analytics", "property comparison"],
+  authors: [{ name: "REI Engine Team" }],
+  openGraph: {
+    title: "REI Engine — Real Estate Investment Analytics",
+    description: "Analyze the best value real estate investments and find properties across many websites from one place.",
+    url: "https://realstate-engine.markmagdy.com/",
+    siteName: "REI Engine",
+    locale: "en_US",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
