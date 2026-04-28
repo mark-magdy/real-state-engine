@@ -78,34 +78,42 @@ class PropertyService:
         for row in data:
             row = {k.strip(): v for k, v in row.items()}  # ✅ fix headers
                 
-           
-            prop_type = row.get("property_type", "").split(",")[0].strip().lower()
-            # bedrooms → take first number
-            bedrooms = row.get("bedrooms")
-            if bedrooms:
-                try:
-                    bedrooms = int(float(bedrooms.strip()))
-                except:
-                    bedrooms = 0
-            else:
-                bedrooms = 0
+            try:
+                prop_type = row.get("property_type", "").split(",")[0].strip().lower()
             
-            compound = row.get("compound", "").strip()
+                # bedrooms → take first number
+                bedrooms = row.get("bedrooms")
+                if bedrooms:
+                    try:
+                        val = bedrooms.strip().lower()
+                        if "," in val:  # 👈 this means it's an array
+                            bedrooms = len([b for b in val.split(",") if b.strip()])
+                        else:
+                            bedrooms = int(float(bedrooms.strip()))
+                    except:
+                        bedrooms = 0
+                else:
+                    bedrooms = 0
+                
+                compound = row.get("compound", "").strip()
 
-            clean_data.append({
-                "title": f"{prop_type.title()} , {compound}" if compound else prop_type.title(),
-                "property_type": prop_type,
-                "area": row["area"],
-                "compound": compound,
-                "meter_square": int(float(row.get("size_sqm") or 0)),
-                "bedrooms": bedrooms,
-                "bathrooms": int(float(row.get("bathrooms") or 0)),
-                "price": float(row.get("min_price") or 0),
-                "down_payment": float(row.get("min_down_payment") or 0),
-                "installment": float(row.get("installment_percentage") or 0),
-                "url": row.get("url", ""),
-                "listing_type": "rent" if row.get("rent") else "buy"
-            })
+                clean_data.append({
+                    "title": f"{prop_type.title()} , {compound}" if compound else prop_type.title(),
+                    "property_type": prop_type,
+                    "area": row["area"],
+                    "compound": compound,
+                    "meter_square": int(float(row.get("size_sqm") or 0)),
+                    "bedrooms": bedrooms,
+                    "bathrooms": int(float(row.get("bathrooms") or 0)),
+                    "price": float(row.get("min_price") or 0),
+                    "down_payment": float(row.get("min_down_payment") or 0),
+                    "installment": "",
+                    "url": row.get("url", ""),
+                    "listing_type": "rent" if row.get("rent") else "buy"
+                })
+            except Exception as e:
+                print(f"⚠️ Skipping row due to error: {e}")
+                raise e
         return clean_data
     
     def clean_bayut(self, data):
