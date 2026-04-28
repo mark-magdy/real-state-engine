@@ -43,7 +43,7 @@ class CrawlingService:
         df_all = pd.concat([df_pf_all, df_nawy], ignore_index=True)
         df_all.to_csv(f"all_properties_{timestamp}.csv", index=False)
 
-    def detect_listing_type(self, share_url, offering_type=None):
+    def detect_listing_type(share_url, offering_type=None):
         if share_url:
             if "/buy/" in share_url:
                 return "buy"
@@ -57,11 +57,19 @@ class CrawlingService:
                 return "buy"
         return "buy"
 
+    def safe_int(val):
+        if val is None:
+            return None
+        try:
+            return int(float(str(val)))
+        except (ValueError, TypeError):
+            return None
+
     # ============================================================
     # SCRAPER 1 — PF NEW PROJECTS
     # ============================================================
 
-    def scrape_pf_new_projects(self, limit=50):
+    def scrape_pf_new_projects(limit=1000):
         print("\n" + "="*60)
         print(f"PROPERTYFINDER — NEW PROJECTS (first {limit})")
         print("="*60)
@@ -76,11 +84,17 @@ class CrawlingService:
         PAGE_SIZE = 6
         rows = []
 
-        for page in range(1, 99):
+        r = requests.get(BASE, headers=headers,
+                        params={"page[limit]": PAGE_SIZE, "page[number]": 1,
+                                "sort": "mr", "locale": "en"})
+        total_pages = r.json().get("meta", {}).get("pagination", {}).get("total", 9999)
+        print(f"Total pages: {total_pages}")
+
+        for page in range(1, total_pages + 1):
             if len(rows) >= limit:
                 break
 
-            print(f"  Page {page}", end=" ... ")
+            print(f"  Page {page}/{total_pages}", end=" ... ")
             r = requests.get(BASE, headers=headers,
                             params={"page[limit]": PAGE_SIZE, "page[number]": page,
                                     "sort": "mr", "locale": "en"})
@@ -108,6 +122,10 @@ class CrawlingService:
                 down_pct       = p.get("downPaymentPercentage")
                 down_payment   = round(starting_price * down_pct / 100) if starting_price and down_pct else None
 
+                # ── Installment: years from paymentPlans ──
+                payment_plans         = p.get("paymentPlans") or []
+                installment_percentage = payment_plans[0] if payment_plans else None
+
                 photo_url = None
                 images = p.get("images") or []
                 if images:
@@ -130,8 +148,8 @@ class CrawlingService:
                     "ready_by":               p.get("deliveryDate"),
                     "min_price":              starting_price,
                     "currency":               "EGP",
-                    "min_down_payment":       down_payment,  # ← EGP value now
-                    "installment_percentage": None,
+                    "min_down_payment":       down_payment,
+                    "installment_percentage": installment_percentage,
                     "installment_type":       None,
                     "listing_type":           "buy",
                     "location":               loc.get("fullName"),
@@ -151,7 +169,7 @@ class CrawlingService:
     # SCRAPER 2 — PF RESALE + RENTAL
     # ============================================================
 
-    def scrape_pf_listings(self, category_id, listing_type_label, limit=50):
+    def scrape_pf_listings(category_id, listing_type_label, limit=1000):
         print(f"\n{'='*60}")
         print(f"PROPERTYFINDER — {listing_type_label.upper()} (first {limit})")
         print("="*60)
@@ -166,7 +184,7 @@ class CrawlingService:
         PAGE_SIZE = 25
         rows = []
 
-        for page in range(1, 99):
+        for page in range(1, 9999):
             if len(rows) >= limit:
                 break
 
@@ -199,7 +217,7 @@ class CrawlingService:
 
                 share_url    = p.get("share_url")
                 offering     = p.get("offering_type")
-                listing_type = self.detect_listing_type(share_url, offering)
+                listing_type = detect_listing_type(share_url, offering)
 
                 loc_tree = p.get("location_tree", []) or []
                 area = None
@@ -226,13 +244,13 @@ class CrawlingService:
                     "developer":              None,
                     "property_type":          p.get("property_type"),
                     "bedrooms":               p.get("bedrooms"),
-                    "bathrooms":              int(p["bathrooms"]) if p.get("bathrooms") else None,
+                    "bathrooms":              safe_int(p.get("bathrooms")),
                     "size_sqm":               size.get("value"),
                     "finishing":              p.get("completion_status"),
                     "ready_by":               None,
                     "min_price":              price.get("value"),
                     "currency":               price.get("currency"),
-                    "min_down_payment":       None,  # resale listings have no down payment
+                    "min_down_payment":       None,
                     "installment_percentage": None,
                     "installment_type":       None,
                     "listing_type":           listing_type,
@@ -253,7 +271,7 @@ class CrawlingService:
     # SCRAPER 3 — NAWY
     # ============================================================
 
-    def scrape_nawy(self, limit=50):
+    def scrape_nawy(limit=1000):
         print("\n" + "="*60)
         print(f"NAWY — ALL PROPERTIES (first {limit})")
         print("="*60)
@@ -263,7 +281,7 @@ class CrawlingService:
         PAGE_SIZE = 24
         rows = []
 
-        for page in range(1, 99):
+        for page in range(1, 9999):
             if len(rows) >= limit:
                 break
 
@@ -323,8 +341,8 @@ class CrawlingService:
                     "ready_by":               ready_by,
                     "min_price":              plan.get("minPrice"),
                     "currency":               plan.get("currency"),
-                    "min_down_payment":       plan.get("minDownPayment"),  # already EGP
-                    "installment_percentage": plan.get("installmentPercentage"),
+                    "min_down_payment":       plan.get("minDownPayment"),
+                    "installment_percentage": plan.get("minInstallment"),  # EGP monthly amount
                     "installment_type":       plan.get("installmentType"),
                     "listing_type":           listing_type,
                     "location":               area.get("name"),
@@ -338,5 +356,3 @@ class CrawlingService:
             time.sleep(1)
 
         return pd.DataFrame(rows, columns=COMMON_COLUMNS)
-
-
