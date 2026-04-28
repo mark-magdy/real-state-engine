@@ -16,10 +16,10 @@ class AnalysisService:
             query["meter_square"] = int(filters["meter_square"])
 
         if "min_price" in filters:
-            query["full_price__gte"] = float(filters["min_price"])
+            query["price__gte"] = float(filters["min_price"])
             
         if "max_price" in filters:
-            query["full_price__lte"] = float(filters["max_price"])
+            query["price__lte"] = float(filters["max_price"])
 
         if "bedrooms" in filters:
             query["bedrooms"] = int(filters["bedrooms"])
@@ -60,7 +60,6 @@ class AnalysisService:
                             "title": apt.title,
                             "compound": apt.compound,
                             "investment_type": "Installment plan",
-                            "full_price": apt.full_price,
                             "apartment_type": prop_type_key,
                             "down_payment": apt.down_payment,
                             "installment": apt.installment,
@@ -70,19 +69,19 @@ class AnalysisService:
                         })
             
         
-            if avg_full_price and annual_rent:
-                roi_value = (annual_rent / avg_full_price) * 100
+                if avg_full_price:
+                    roi_value = (annual_rent / avg_full_price) * 100
 
-                roi[area].append({
-                    "title": apt.title,
-                    "compound": apt.compound,
-                    "apartment_type": prop_type_key,
-                    "investment_type": "Average Price by Type",
-                    "avg_full_price": avg_full_price,
-                    "rent": apt.price,
-                    "roi_percentage": round(roi_value, 2),
-                    "months_to_break_even": round(apt.full_price / apt.price, 2)
-                })
+                    roi[area].append({
+                        "title": apt.title,
+                        "compound": apt.compound,
+                        "apartment_type": prop_type_key,
+                        "investment_type": "Average Price by Type",
+                        "avg_full_price": avg_full_price,
+                        "rent": apt.price,
+                        "roi_percentage": round(roi_value, 2),
+                        "months_to_break_even": round(avg_full_price / apt.price, 2)
+                    })
         return {"roi": roi}
 
     
