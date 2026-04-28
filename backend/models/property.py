@@ -31,8 +31,7 @@ class Property(Document):
             "property_type",
             "bedrooms",
             "bathrooms",
-            "rent",
-            "full_price"
+            "price"
         ]
     }
 

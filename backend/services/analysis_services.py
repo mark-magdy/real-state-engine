@@ -12,6 +12,9 @@ class AnalysisService:
         if "compound" in filters:
             query["compound"] = filters["compound"]
 
+        if "meter_square" in filters:
+            query["meter_square"] = int(filters["meter_square"])
+
         if "min_price" in filters:
             query["full_price__gte"] = float(filters["min_price"])
             
@@ -26,44 +29,57 @@ class AnalysisService:
     def calculate_return_on_investment(self, filters=None):
         """Calculating ROI"""
         query = self.build_filter(filters or {})
-        apartments = Property.objects(**query, rent__ne=None)
+
+        avg_price_data = self.calculate_avg_price_by_type(filters)
+        
+        avg_prices_map = {
+            item["property_type"]: item["avg_price"] 
+            for item in avg_price_data["avg_price_by_type"]
+        }
+
+        apartments_for_rent = Property.objects(**query, listing_type="rent")
         roi = {}
-        for apt in apartments:
-            annual_rent = apt.rent * 12 if apt.rent else None
-            
+
+        for apt in apartments_for_rent:
+            annual_rent = apt.price * 12 if apt.price else None
+
             area = apt.area if apt.area else "Unknown area"
             if area not in roi:
                 roi[area] = []
 
-            if apt.down_payment and apt.installment:
-                first_year_cash_invested = apt.down_payment + (apt.installment * 12)
-                if first_year_cash_invested > 0:
-                    roi_value = (annual_rent / first_year_cash_invested) * 100
-                    roi[area].append({
-                        "title": apt.title,
-                        "compound": apt.compound,
-                        "investment_type": "Installment plan",
-                        "full_price": apt.full_price,
-                        "apartment_type": apt.property_type.value,
-                        "down_payment": apt.down_payment,
-                        "installment": apt.installment,
-                        "rent": apt.rent,
-                        "roi_percentage": round(roi_value, 2),
-                        "months_to_recover_year_one_cash": round(first_year_cash_invested / apt.rent, 2) 
-                    })
+            # if apt.down_payment and apt.installment:
+            #     first_year_cash_invested = apt.down_payment + (apt.installment * 12)
+            #     if first_year_cash_invested > 0:
+            #         roi_value = (annual_rent / first_year_cash_invested) * 100
+            #         roi[area].append({
+            #             "title": apt.title,
+            #             "compound": apt.compound,
+            #             "investment_type": "Installment plan",
+            #             "full_price": apt.full_price,
+            #             "apartment_type": apt.property_type.value,
+            #             "down_payment": apt.down_payment,
+            #             "installment": apt.installment,
+            #             "rent": apt.rent,
+            #             "roi_percentage": round(roi_value, 2),
+            #             "months_to_recover_year_one_cash": round(first_year_cash_invested / apt.rent, 2) 
+            #         })
+            
+            
+            prop_type_key = apt.property_type.value if hasattr(apt.property_type, 'value') else apt.property_type
+            avg_full_price = avg_prices_map.get(prop_type_key)
 
-            elif apt.full_price:
-                roi_value = (annual_rent / apt.full_price) * 100
+            if avg_full_price and annual_rent:
+                roi_value = (annual_rent / avg_full_price) * 100
 
                 roi[area].append({
                     "title": apt.title,
                     "compound": apt.compound,
-                    "apartment_type": apt.property_type.value,
-                    "investment_type": "Full Price",
-                    "full_price": apt.full_price,
-                    "rent": apt.rent,
+                    "apartment_type": prop_type_key,
+                    "investment_type": "Average Price by Type",
+                    "avg_full_price": avg_full_price,
+                    "rent": apt.price,
                     "roi_percentage": round(roi_value, 2),
-                    "months_to_break_even": round(apt.full_price / apt.rent, 2)
+                    "months_to_break_even": round(apt.full_price / apt.price, 2)
                 })
         return {"roi": roi}
 
