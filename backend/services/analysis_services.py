@@ -13,10 +13,10 @@ class AnalysisService:
             query["compound"] = filters["compound"]
 
         if "min_price" in filters:
-            query["full_price__gte"] = float(filters["min_price"])
+            query["price__gte"] = float(filters["min_price"])
             
         if "max_price" in filters:
-            query["full_price__lte"] = float(filters["max_price"])
+            query["price__lte"] = float(filters["max_price"])
 
         if "bedrooms" in filters:
             query["bedrooms"] = filters["bedrooms"]
@@ -63,7 +63,7 @@ class AnalysisService:
             {
                 "$group": {
                     "_id": "$property_type",
-                    "avg_price": {"$avg": "$full_price"},
+                    "avg_price": {"$avg": "$price"},
                     "count": {"$sum": 1}
                 }
             },
@@ -122,11 +122,11 @@ class AnalysisService:
                     "area": 1,
                     "downpayment_percentage": {
                         "$cond": [
-                            {"$eq": ["$full_price", 0]},
+                            {"$eq": ["$price", 0]},
                             0,
                             {
                                 "$multiply": [
-                                    {"$divide": ["$down_payment", "$full_price"]},
+                                    {"$divide": ["$down_payment", "$price"]},
                                     100
                                 ]
                             }
