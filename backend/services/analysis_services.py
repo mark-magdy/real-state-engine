@@ -96,6 +96,11 @@ class AnalysisService:
                     "avg_installment": {"$avg": "$installment"},
                     "count": {"$sum": 1}
                 }
+            },
+            {
+                "$match": {
+                    "avg_installment": {"$ne": None}
+                }
             }
         ]
 
