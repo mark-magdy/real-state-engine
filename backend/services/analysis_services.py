@@ -113,32 +113,32 @@ class AnalysisService:
     
     def calculate_avg_price_by_type(self, filters=None):
         pipeline = [
-            {
+                {
                     "$match": {
-                    **self.build_filter(filters or {}),
-                    "property_type": {"$ne": "Unknown"}
-                }
-            },
-            {
-                "$project": {
-                    "property_type": 1,
-                    "price_per_m2": {
-                        "$divide": ["$price", "$meter_square"]
+                        **self.build_filter(filters or {}),
+                        "property_type": {"$ne": "Unknown"},
+                        "meter_square": {"$gt": 0}
                     }
+                },
+                {
+                    "$project": {
+                        "property_type": 1,
+                        "price_per_m2": {
+                            "$divide": ["$price", "$meter_square"]
+                        }
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$property_type",
+                        "avg_price_per_m2": {"$avg": "$price_per_m2"},
+                        "count": {"$sum": 1}
+                    }
+                },
+                {
+                    "$sort": {"avg_price_per_m2": -1}
                 }
-            },
-            {
-                "$group": {
-                    "_id": "$property_type",
-                    "avg_price_per_m2": {"$avg": "$price_per_m2"},
-                    "count": {"$sum": 1}
-                }
-            },
-            {
-                "$sort": {"avg_price_per_m2": -1}
-            }
-        ]
-
+            ]
         results = list(Property.objects.aggregate(pipeline))
 
         return {
@@ -154,26 +154,41 @@ class AnalysisService:
 
     def calculate_avg_price_by_area(self, filters=None):
         pipeline = [
-            {"$match": self.build_filter(filters or {})},
+            {
+                "$match": {
+                    **self.build_filter(filters or {}),
+                    "price": {"$gt": 0},
+                    "meter_square": {"$gt": 0},
+                    "area": {"$exists": True, "$ne": None, "$ne": ""}
+                }
+            },
+            {
+                "$project": {
+                    "area": 1,
+                    "price_per_m2": {
+                        "$divide": ["$price", "$meter_square"]
+                    }
+                }
+            },
             {
                 "$group": {
                     "_id": "$area",
-                    "avg_price": {"$avg": "$price"},
+                    "avg_price_per_m2": {"$avg": "$price_per_m2"},
                     "count": {"$sum": 1}
                 }
             },
             {
-                "$sort": {"avg_price": -1}
+                "$sort": {"avg_price_per_m2": -1}
             }
         ]
 
         results = list(Property.objects.aggregate(pipeline))
 
         return {
-            "avg_price_by_area": [
+            "avg_price_per_m2_by_area": [
                 {
                     "area": r["_id"],
-                    "avg_price": r["avg_price"],
+                    "avg_price_per_m2": r["avg_price_per_m2"],
                     "count": r["count"]
                 }
                 for r in results
