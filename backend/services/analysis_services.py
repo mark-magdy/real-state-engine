@@ -66,14 +66,22 @@ class AnalysisService:
                 }
             },
             {
+                "$project": {
+                    "property_type": 1,
+                    "price_per_m2": {
+                        "$divide": ["$price", "$meter_square"]
+                    }
+                }
+            },
+            {
                 "$group": {
                     "_id": "$property_type",
-                    "avg_price": {"$avg": "$price"},
+                    "avg_price_per_m2": {"$avg": "$price_per_m2"},
                     "count": {"$sum": 1}
                 }
             },
             {
-                "$sort": {"avg_price": -1}
+                "$sort": {"avg_price_per_m2": -1}
             }
         ]
 
@@ -83,7 +91,7 @@ class AnalysisService:
             "avg_price_by_type": [
                 {
                     "property_type": r["_id"],
-                    "avg_price": r["avg_price"],
+                    "avg_price_per_m2": r["avg_price_per_m2"],
                     "count": r["count"]
                 }
                 for r in results
