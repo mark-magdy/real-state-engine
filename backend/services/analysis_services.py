@@ -59,7 +59,12 @@ class AnalysisService:
     
     def calculate_avg_price_by_type(self, filters=None):
         pipeline = [
-            {"$match": self.build_filter(filters or {})},
+            {
+                    "$match": {
+                    **self.build_filter(filters or {}),
+                    "property_type": {"$ne": "Unknown"}
+                }
+            },
             {
                 "$group": {
                     "_id": "$property_type",
@@ -118,8 +123,12 @@ class AnalysisService:
         }
 
     def calculate_downpayment_percentage_by_area(self, filters=None):
-        match_stage = {"$match": self.build_filter(filters or {})}
-
+        match_stage = {
+                        "$match": {
+                            **self.build_filter(filters or {}),
+                            "listing_type": "buy"
+                        }
+                    }
         pipeline = [
             match_stage,
             {
