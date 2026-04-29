@@ -13,8 +13,12 @@ pipeline {
             steps {
                 dir('backend') {
                     sh '''
-                        echo "Running backend manually in host Jenkins"
-                        docker --version
+                        echo "Installing backend dependencies..."
+                        python3 --version || true
+                        pip install -r requirements.txt
+
+                        echo "Running tests / checks..."
+                        python -m compileall .
                     '''
                 }
             }
@@ -25,8 +29,8 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh '''
-                        echo "Running frontend manually in host Jenkins"
-                        node --version
+                        npm install
+                        npm run build
                     '''
                 }
             }
