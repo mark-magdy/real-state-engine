@@ -51,7 +51,8 @@ pipeline {
             steps {
                     dir('frontend') {
                         sh '''
-                            docker build -t nextjs-frontend ./frontend
+                            pwd
+                            docker build -t nextjs-frontend .
                         '''
                     }
                 }
