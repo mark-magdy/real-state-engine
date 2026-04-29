@@ -12,7 +12,7 @@ pipeline {
 
         stage('Backend - Flask') {
             agent {
-                docker {
+                dockerContainer {
                     image 'python:3.9-slim'
                 }
             }
@@ -28,7 +28,7 @@ pipeline {
 
         stage('Frontend - Next.js') {
             agent {
-                docker {
+                dockerContainer {
                     image 'node:18'
                 }
             }
