@@ -42,11 +42,7 @@ pipeline {
             steps {
                 dir('backend') {
                     sh '''
-                        pwd
-                        ls -la
-                        ls -la backend || true
-                        ls -la frontend || true
-                        docker build -t flask-backend ./backend
+                        docker build -t flask-backend .
                     '''
                 }
             }
