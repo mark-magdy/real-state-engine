@@ -362,7 +362,7 @@ class PropertyService:
 
 
                 clean_data.append({
-                    "title": f"{prop_type}, {area}, {compound}" if compound else f"{prop_type}, {area}",
+                    "title": f"{prop_type.capitalize()}, {area}, {compound}" if compound else f"{prop_type.capitalize()}, {area}",
                     "property_type": prop_type,
                     "area": area,
                     "compound": compound,
@@ -434,7 +434,7 @@ class PropertyService:
             area = area.replace("City", "").strip()
 
             clean_data.append({
-                "title": f"{prop_type}, {area}, {compound}" if compound else f"{prop_type}, {area}",
+                "title": f"{prop_type.capitalize()}, {area}, {compound}" if compound else f"{prop_type}, {area}",
                 "property_type": prop_type,
                 "area": area,
                 "compound": compound,
