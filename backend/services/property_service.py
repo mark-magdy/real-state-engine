@@ -322,7 +322,12 @@ class PropertyService:
                 
             try:
                 prop_type = row.get("property_type", "").split(",")[0].strip().lower()
-            
+                compound = row.get("compound", "").strip()
+                price= float(row.get("min_price") or 0)
+
+                if price == 0 or price == "N/A"or prop_type == "Unknown" or prop_type == "" or prop_type == "N/A":
+                    print(f"⚠️ Skipping row due to invalid price or property type: {row}")
+                    continue
                 # bedrooms → take first number
                 bedrooms = row.get("bedrooms")
                 if bedrooms:
@@ -337,7 +342,11 @@ class PropertyService:
                 else:
                     bedrooms = 0
                 
-                compound = row.get("compound", "").strip()
+                
+                
+
+
+
                 source = next(iter(row.values()))
                 area = row.get("area", "").strip()
                 installment = ""
@@ -351,6 +360,7 @@ class PropertyService:
                 
                 area = area.replace("City", "").strip()
 
+
                 clean_data.append({
                     "title": f"{prop_type.title()} , {compound}" if compound else prop_type.title(),
                     "property_type": prop_type,
@@ -359,7 +369,7 @@ class PropertyService:
                     "meter_square": int(float(row.get("size_sqm") or 0)),
                     "bedrooms": bedrooms,
                     "bathrooms": int(float(row.get("bathrooms") or 0)),
-                    "price": float(row.get("min_price") or 0),
+                    "price": price,
                     "down_payment": float(row.get("min_down_payment") or 0),
                     "installment": installment,
                     "url": row.get("url", ""),
@@ -408,6 +418,11 @@ class PropertyService:
 
             # property type (string, no enum now)
             prop_type = (row.get("type") or "").strip().lower()
+            price = parse_price(row.get("Price(EGP)"))
+
+            if price == 0 or price == "N/A"or prop_type == "Unknown" or prop_type == "" or prop_type == "N/A":
+                    print(f"⚠️ Skipping row due to invalid price or property type: {row}")
+                    continue
 
             # split location → area + compound
             location = row.get("location") or ""
@@ -419,7 +434,7 @@ class PropertyService:
             area = area.replace("City", "").strip()
 
             clean_data.append({
-                "title": f"{prop_type.title()} , {compound}" if compound else prop_type.title(),
+                "title": f"{compound} , {area}" if compound else area,
                 "property_type": prop_type,
                 "area": area,
                 "compound": compound,
@@ -428,7 +443,7 @@ class PropertyService:
                 "bedrooms": parse_int(row.get("bedrooms")),
                 "bathrooms": parse_int(row.get("Bathrooms")),
 
-                "price": parse_price(row.get("Price(EGP)")),
+                "price": price,
                 "down_payment": parse_down_payment(row.get("Down payment")),
                 "installment": parse_installment(row.get("Instalment")),
 
