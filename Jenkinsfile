@@ -38,12 +38,23 @@ pipeline {
                 }
             }
         }
-        stage('Build Docker Image') {
+        stage('Backend Docker Build') {
             steps {
-                sh '''
-                    docker build -t flask-nextjs-app .
-                '''
+                dir('backend') {
+                    sh '''
+                        docker build -t flask-backend ./backend
+                    '''
+                }
             }
         }
+        stage('Frontend Docker Build') {
+            steps {
+                    dir('frontend') {
+                        sh '''
+                            docker build -t nextjs-frontend ./frontend
+                        '''
+                    }
+                }
+            }
     }
 }
