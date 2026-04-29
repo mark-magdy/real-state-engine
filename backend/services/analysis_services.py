@@ -140,12 +140,12 @@ class AnalysisService:
                 {
                     "$group": {
                         "_id": "$property_type",
-                        "avg_price_per_m2": {"$avg": "$price_per_m2"},
+                        "avg_price": {"$avg": "$price_per_m2"},
                         "count": {"$sum": 1}
                     }
                 },
                 {
-                    "$sort": {"avg_price_per_m2": -1}
+                    "$sort": {"avg_price": -1}
                 }
             ]
         results = list(Property.objects.aggregate(pipeline))
@@ -154,7 +154,7 @@ class AnalysisService:
             "avg_price_by_type": [
                 {
                     "property_type": r["_id"],
-                    "avg_price_per_m2": r["avg_price_per_m2"],
+                    "avg_price": r["avg_price"],
                     "count": r["count"]
                 }
                 for r in results
@@ -182,22 +182,22 @@ class AnalysisService:
             {
                 "$group": {
                     "_id": "$area",
-                    "avg_price_per_m2": {"$avg": "$price_per_m2"},
+                    "avg_price": {"$avg": "$price_per_m2"},
                     "count": {"$sum": 1}
                 }
             },
             {
-                "$sort": {"avg_price_per_m2": -1}
+                "$sort": {"avg_price": -1}
             }
         ]
 
         results = list(Property.objects.aggregate(pipeline))
 
         return {
-            "avg_price_per_m2_by_area": [
+            "avg_price_by_area": [
                 {
                     "area": r["_id"],
-                    "avg_price_per_m2": r["avg_price_per_m2"],
+                    "avg_price": r["avg_price"],
                     "count": r["count"]
                 }
                 for r in results
