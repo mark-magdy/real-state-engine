@@ -15,8 +15,10 @@ pipeline {
                     sh '''
                         echo "Installing backend dependencies..."
                         python3 --version || true
-                        python3 -m pip install --upgrade pip
-                        python3 -m pip install -r requirements.txt
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        python -m pip install --upgrade pip
+                        pip install -r requirements.txt
 
                         echo "Running tests / checks..."
                         python -m compileall .
