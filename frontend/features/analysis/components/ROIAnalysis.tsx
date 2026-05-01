@@ -31,7 +31,7 @@ function ROIAnalysisDataView({ data, summary }: { data: ROIResponse; summary: an
                   <th className="px-4 py-3">Title</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Investment Mode</th>
-                  <th className="px-4 py-3 text-right">Recover (Yrs)</th>
+                  <th className="px-4 py-3 text-right">Recover (Months)</th>
                   <th className="px-4 py-3 text-right">ROI %</th>
                 </tr>
               </thead>

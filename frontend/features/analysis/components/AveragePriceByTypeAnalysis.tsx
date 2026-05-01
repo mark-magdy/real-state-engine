@@ -20,7 +20,7 @@ function AveragePriceDataView({ data }: { data: AveragePriceResponse }) {
         <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
           <tr>
             <th className="px-4 py-3">Property Type</th>
-            <th className="px-4 py-3 text-right">Average Price (EGP)</th>
+            <th className="px-4 py-3 text-right">Average Price per m^2 (EGP)</th>
             <th className="px-4 py-3 text-right">Properties Count</th>
           </tr>
         </thead>
