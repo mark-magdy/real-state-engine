@@ -1,25 +1,26 @@
 pipeline {
-    agent none
+    agent any
 
     stages {
 
         stage('Checkout') {
-            agent any
             steps {
                 checkout scm
             }
         }
 
         stage('Backend - Flask') {
-            agent {
-                docker {
-                    image 'python:3.9-slim'
-                }
-            }
             steps {
                 dir('backend') {
                     sh '''
+                        echo "Installing backend dependencies..."
+                        python3 --version || true
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        python -m pip install --upgrade pip
                         pip install -r requirements.txt
+
+                        echo "Running tests / checks..."
                         python -m compileall .
                     '''
                 }
@@ -27,11 +28,7 @@ pipeline {
         }
 
         stage('Frontend - Next.js') {
-            agent {
-                docker {
-                    image 'node:18'
-                }
-            }
+            agent any
             steps {
                 dir('frontend') {
                     sh '''
@@ -41,5 +38,24 @@ pipeline {
                 }
             }
         }
+        stage('Backend Docker Build') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        docker build -t flask-backend .
+                    '''
+                }
+            }
+        }
+        stage('Frontend Docker Build') {
+            steps {
+                    dir('frontend') {
+                        sh '''
+                            pwd
+                            docker build -t nextjs-frontend .
+                        '''
+                    }
+                }
+            }
     }
 }

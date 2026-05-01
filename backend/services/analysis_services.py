@@ -27,61 +27,70 @@ class AnalysisService:
         return query
     
     def calculate_return_on_investment(self, filters=None):
-        """Calculating ROI using both Installments (Cash-on-Cash) and Average Price by type"""
+        """Calculating ROI using Average Price for the specific Area AND Property Type"""
         query = self.build_filter(filters or {})
 
-        avg_price_data = self.calculate_avg_price_by_type(filters)
-        avg_prices_map = {
-            item["property_type"]: item["avg_price"] 
-            for item in avg_price_data["avg_price_by_type"]
-        }
+        aggregation_query = query.copy()
+        aggregation_query["listing_type"] = "buy"
 
+        # 1. Run an aggregation to get the average price grouped by BOTH Area and Property Type
+        pipeline = [
+            {"$match": aggregation_query},
+            {
+                "$group": {
+                    "_id": {
+                        "area": "$area",
+                        "property_type": "$property_type"
+                    },
+                    "avg_price": {"$avg": "$price"}
+                }
+            }
+        ]
+        
+        # Note: Using Property.objects.aggregate to be consistent with MongoEngine
+        avg_price_results = list(Property.objects.aggregate(pipeline))
+
+        # 2. Build a composite key dictionary for O(1) lookups: { ('Area', 'Type'): avg_price }
+        avg_prices_map = {}
+        for r in avg_price_results:
+            if r["_id"]: # Ensure _id is not null
+                area_key = r["_id"].get("area", "Unknown area")
+                type_key = r["_id"].get("property_type", "Unknown")
+                avg_prices_map[(area_key, type_key)] = r["avg_price"]
+
+        # 3. Fetch rental listings
         apartments_for_rent = Property.objects(**query, listing_type="rent")
         roi = {}
 
         for apt in apartments_for_rent:
             annual_rent = apt.price * 12 if apt.price else None
-
             area = apt.area if apt.area else "Unknown area"
+            
+            # Safely get property type
+            prop_type_key = apt.property_type.value if hasattr(apt.property_type, 'value') else apt.property_type
+
             if area not in roi:
                 roi[area] = []
+
+            # 4. Lookup the average price for THIS specific area AND property type
+            avg_full_price = avg_prices_map.get((area, prop_type_key))
             
-            prop_type_key = apt.property_type.value if hasattr(apt.property_type, 'value') else apt.property_type
-            avg_full_price = avg_prices_map.get(prop_type_key)
-            
+            # Calculate ROI only if we have both rent and a valid average price
             if annual_rent:
+                roi_value = (annual_rent / avg_full_price) * 100 if avg_full_price else None
+                break_even_months = (avg_full_price / apt.price) if (avg_full_price and apt.price) else None
 
-                if apt.down_payment and apt.installment:
-                    first_year_cash_invested = apt.down_payment + (apt.installment * 12)
-
-                    if first_year_cash_invested > 0:
-                        installment_roi_value = (annual_rent / first_year_cash_invested) * 100
-                        roi[area].append({
-                            "title": apt.title,
-                            "compound": apt.compound,
-                            "investment_type": "Installment plan",
-                            "apartment_type": prop_type_key,
-                            "down_payment": apt.down_payment,
-                            "installment": apt.installment,
-                            "rent": apt.price,
-                            "roi_percentage": round(installment_roi_value, 2),
-                            "months_to_recover_year_one_cash": round(first_year_cash_invested / apt.price, 2) if apt.price else None
-                        })
-            
-        
-                if avg_full_price:
-                    roi_value = (annual_rent / avg_full_price) * 100
-
-                    roi[area].append({
-                        "title": apt.title,
-                        "compound": apt.compound,
-                        "apartment_type": prop_type_key,
-                        "investment_type": "Average Price by Type",
-                        "avg_full_price": avg_full_price,
-                        "rent": apt.price,
-                        "roi_percentage": round(roi_value, 2),
-                        "months_to_break_even": round(avg_full_price / apt.price, 2)
-                    })
+                roi[area].append({
+                    "title": apt.title,
+                    "compound": apt.compound,
+                    "apartment_type": prop_type_key,
+                    "investment_type": "Average Price by Area and Type",
+                    "avg_full_price": round(avg_full_price, 2) if avg_full_price else None,
+                    "rent": apt.price,
+                    "roi_percentage": round(roi_value, 2) if roi_value else None,
+                    "months_to_break_even": round(break_even_months, 2) if break_even_months else None
+                })
+                
         return {"roi": roi}
 
     
@@ -113,19 +122,32 @@ class AnalysisService:
     
     def calculate_avg_price_by_type(self, filters=None):
         pipeline = [
-            {"$match": self.build_filter(filters or {})},
-            {
-                "$group": {
-                    "_id": "$property_type",
-                    "avg_price": {"$avg": "$price"},
-                    "count": {"$sum": 1}
+                {
+                    "$match": {
+                        **self.build_filter(filters or {}),
+                        "property_type": {"$ne": "Unknown"},
+                        "meter_square": {"$gt": 0}
+                    }
+                },
+                {
+                    "$project": {
+                        "property_type": 1,
+                        "price_per_m2": {
+                            "$divide": ["$price", "$meter_square"]
+                        }
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$property_type",
+                        "avg_price": {"$avg": "$price_per_m2"},
+                        "count": {"$sum": 1}
+                    }
+                },
+                {
+                    "$sort": {"avg_price": -1}
                 }
-            },
-            {
-                "$sort": {"avg_price": -1}
-            }
-        ]
-
+            ]
         results = list(Property.objects.aggregate(pipeline))
 
         return {
@@ -141,11 +163,26 @@ class AnalysisService:
 
     def calculate_avg_price_by_area(self, filters=None):
         pipeline = [
-            {"$match": self.build_filter(filters or {})},
+            {
+                "$match": {
+                    **self.build_filter(filters or {}),
+                    "price": {"$gt": 0},
+                    "meter_square": {"$gt": 0},
+                    "area": {"$exists": True, "$ne": None, "$ne": ""}
+                }
+            },
+            {
+                "$project": {
+                    "area": 1,
+                    "price_per_m2": {
+                        "$divide": ["$price", "$meter_square"]
+                    }
+                }
+            },
             {
                 "$group": {
                     "_id": "$area",
-                    "avg_price": {"$avg": "$price"},
+                    "avg_price": {"$avg": "$price_per_m2"},
                     "count": {"$sum": 1}
                 }
             },
@@ -200,8 +237,12 @@ class AnalysisService:
         }
 
     def calculate_downpayment_percentage_by_area(self, filters=None):
-        match_stage = {"$match": self.build_filter(filters or {})}
-
+        match_stage = {
+                        "$match": {
+                            **self.build_filter(filters or {}),
+                            "listing_type": "buy"
+                        }
+                    }
         pipeline = [
             match_stage,
             {
