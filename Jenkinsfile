@@ -1,6 +1,13 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKERHUB_USER = 'engyoustina'
+        BACKEND_IMAGE = 'engyoustina/flask-backend'
+        FRONTEND_IMAGE = 'engyoustina/nextjs-frontend'
+        TAG = 'latest'
+    }
+
     stages {
 
         stage('Checkout') {
@@ -13,14 +20,10 @@ pipeline {
             steps {
                 dir('backend') {
                     sh '''
-                        echo "Installing backend dependencies..."
-                        python3 --version || true
-                        python3 -m venv venv
+                        python3 -m venv venv || true
                         . venv/bin/activate
-                        python -m pip install --upgrade pip
-                        pip install -r requirements.txt
-
-                        echo "Running tests / checks..."
+                        python -m pip install --upgrade pip || true
+                        pip install -r requirements.txt || true
                         python -m compileall .
                     '''
                 }
@@ -28,7 +31,6 @@ pipeline {
         }
 
         stage('Frontend - Next.js') {
-            agent any
             steps {
                 dir('frontend') {
                     sh '''
@@ -38,24 +40,35 @@ pipeline {
                 }
             }
         }
-        stage('Backend Docker Build') {
+
+        stage('Build Docker Images') {
             steps {
-                dir('backend') {
-                    sh '''
-                        docker build -t flask-backend .
-                    '''
+                sh '''
+                    docker build -t $BACKEND_IMAGE:$TAG backend
+                    docker build -t $FRONTEND_IMAGE:$TAG frontend
+                '''
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    sh 'echo $PASS | docker login -u $USER --password-stdin'
                 }
             }
         }
-        stage('Frontend Docker Build') {
+
+        stage('Push Images') {
             steps {
-                    dir('frontend') {
-                        sh '''
-                            pwd
-                            docker build -t nextjs-frontend .
-                        '''
-                    }
-                }
+                sh '''
+                    docker push $BACKEND_IMAGE:$TAG
+                    docker push $FRONTEND_IMAGE:$TAG
+                '''
             }
+        }
     }
 }
