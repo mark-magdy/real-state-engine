@@ -20,6 +20,7 @@ pipeline {
             steps {
                 dir('backend') {
                     sh '''
+                        apt-get update && apt-get install -y python3-venv
                         python3 -m venv venv || true
                         . venv/bin/activate
                         python -m pip install --upgrade pip || true
